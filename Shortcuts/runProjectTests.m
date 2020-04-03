@@ -1,7 +1,7 @@
 function r = runProjectTests
 
 prj = currentProject;
-r = runtests(prj.RootFolder, 'ReportCoverageFor', 'FigureDeployer.m');
+r = runtests(prj.RootFolder, 'ReportCoverageFor', prj.RootFolder);
 
 end
 
