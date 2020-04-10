@@ -126,3 +126,4 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
     end
  
 end
+% Copyright 2020 The MathWorks, Inc.

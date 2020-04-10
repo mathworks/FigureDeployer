@@ -199,3 +199,4 @@ function mustBeFigureOrPlaceholder(fig)
     validateattributes(fig, {'matlab.ui.Figure', 'matlab.graphics.GraphicsPlaceholder'}, {}, mfilename, 'Figure')
     
 end
+% Copyright 2020 The MathWorks, Inc.
