@@ -12,7 +12,7 @@ classdef tFigureDeployerImageNames < matlab.unittest.TestCase
             
             import matlab.unittest.constraints.StringComparator
             import matlab.unittest.constraints.IsEqualTo
-            testCase.verifyThat(DF.ImageName, IsEqualTo('testImage.bmp', 'Using', StringComparator));
+            testCase.verifyThat(DF.ImageName, IsEqualTo("testImage.bmp", 'Using', StringComparator));
                         
         end
         
@@ -21,7 +21,7 @@ classdef tFigureDeployerImageNames < matlab.unittest.TestCase
             
             import matlab.unittest.constraints.EndsWithSubstring
             import matlab.unittest.constraints.StartsWithSubstring
-            testCase.verifyThat(DF.ImageName, EndsWithSubstring('.bmp'));
+            testCase.verifyThat(DF.ImageName, EndsWithSubstring(".bmp"));
             testCase.verifyThat(DF.ImageName, StartsWithSubstring(tempdir));
             
         end
@@ -30,7 +30,7 @@ classdef tFigureDeployerImageNames < matlab.unittest.TestCase
             import matlab.unittest.constraints.StringComparator
             import matlab.unittest.constraints.IsEqualTo
             
-            fname = [tempname '12.jpg'];
+            fname = tempname + "12.jpg";
             DF = FigureDeployer('ImageName', fname);
             testCase.verifyThat(DF.ImageName, IsEqualTo(fname, 'Using', StringComparator));
             

@@ -4,14 +4,14 @@ classdef (Sealed) FigureDeployer < handle
     properties
         Figure {mustBeFigureOrPlaceholder} = get(groot, 'CurrentFigure') % Figure handle
         Height(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 450 % Height in pixels of image
-        ImageName(1, :) char = '' % Image file name
-        ImageType(1, :) char {mustBeMember(ImageType, {'png', 'jpg', 'bmp', 'svg', 'gif'})} = 'png' % Image Type 
+        ImageName(1, 1) string = "" % Image file name
+        ImageType(1, 1) string {mustBeMember(ImageType, {'png', 'jpg', 'bmp', 'svg', 'gif'})} = "png" % Image Type 
         Width(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 600 % Width in pixels of image
         Resolution(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 150 % Width in pixels of image
     end
     
     properties (Access = protected)
-        ProvidedImageName
+        ProvidedImageName(1, 1) string = missing
     end
     
     methods
@@ -35,7 +35,6 @@ classdef (Sealed) FigureDeployer < handle
         %   
         %   -Resolution: Pixels/per inch.  Scalar, default is 150.
         %
-
             arguments                
                 opts.?FigureDeployer
                 opts.Figure = get(groot, 'CurrentFigure'); % Figure is separate so calculated at runtime v. class load time
@@ -65,8 +64,7 @@ classdef (Sealed) FigureDeployer < handle
         %   -imdata: Image data of the type specified by the ImageType
         %
         %   -imname: Image file name.
-        %
-        
+        %        
             checkFigure(obj);
         
             % Be nice, set things back to original state.
@@ -114,6 +112,7 @@ classdef (Sealed) FigureDeployer < handle
         
             % Pass back ImageName
             imname = obj.ImageName;
+            
         end
  
         function stream = getStream(obj, opts)
@@ -133,15 +132,14 @@ classdef (Sealed) FigureDeployer < handle
         %   -Stream: Byte stream of image.
         %            Class OutputType for raster image types.
         %            Char for SVG.
-        %
-        
+        %        
               arguments
                   obj
-                  opts.OutputType(1,:) char {mustBeMember(opts.OutputType, {'uint8', 'base64'})} = 'uint8'
+                  opts.OutputType(1, 1) string {mustBeMember(opts.OutputType, {'uint8', 'base64'})} = "uint8"
               end              
               checkFigure(obj);
               
-              if isequal(obj.ImageType, 'svg')                  
+              if obj.ImageType == "svg"
                   % SVG stream is equivalent to the data.
                   [stream, imname] = getImage(obj);
                   deleter = onCleanup(@()delete(imname));
@@ -151,7 +149,7 @@ classdef (Sealed) FigureDeployer < handle
                   stream = figToImStream('figHandle', obj.Figure, ...
                       'imageFormat', obj.ImageType, 'outputType', 'uint8');
                   
-                  if isequal(opts.OutputType, 'base64')
+                  if opts.OutputType == "base64"
                       stream = matlab.net.base64encode(stream);
                   end
                   
@@ -160,11 +158,10 @@ classdef (Sealed) FigureDeployer < handle
         end
                    
         function imname = get.ImageName(obj)
-        % Returns image name handling the file extension.
-        
-            if isempty(obj.ProvidedImageName)
+        % Returns image name handling the file extension.        
+            if ismissing(obj.ProvidedImageName)
                 % Nothing provided, give a tempname
-                obj.ProvidedImageName = tempname;
+                obj.ProvidedImageName = string(tempname);
             end
             
             % Handle path and extension.
@@ -172,12 +169,12 @@ classdef (Sealed) FigureDeployer < handle
             pname = fullfile(impath, name);
             
             % Add extension if there isn't one
-            if isempty(ext)
-                ext = ['.' obj.ImageType];
+            if ~strlength(ext)
+                ext = "." + obj.ImageType;
             end
             
             % Build image name
-            imname = [pname ext];
+            imname = pname + ext;
         
         end
         
@@ -189,7 +186,8 @@ classdef (Sealed) FigureDeployer < handle
             if isempty(obj.Figure) || ~isvalid(obj.Figure)
                 ME = MException('FigureDeployer:InvalidFigure', 'Figure is empty or deleted');
                 throwAsCaller(ME);                
-            end 
+            end
+            
         end
         
     end    
