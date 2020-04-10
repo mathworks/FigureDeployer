@@ -8,7 +8,7 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
     
     properties (TestParameter)
         RasterImageTypes = {'bmp', 'png', 'jpg', 'gif'} % Different raster image types
-        StreamOutputTypes = {'uint8', 'int8'} % Different byte stream data types
+        StreamOutputTypes = struct('uint8',["uint8", "uint8"], 'base64',["base64", "char"]) % Different byte stream types and expected class
     end
     
     methods (TestMethodSetup)
@@ -98,10 +98,10 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
         
         function shouldGenerateByteStreamOutput(testCase, RasterImageTypes, StreamOutputTypes)
             DF = FigureDeployer('Figure', testCase.Figure, 'ImageType', RasterImageTypes);
-            im = getStream(DF, 'OutputType', StreamOutputTypes);                       
+            im = getStream(DF, 'OutputType', StreamOutputTypes(1));
             
             import matlab.unittest.constraints.IsFile
-            testCase.verifyClass(im, StreamOutputTypes);
+            testCase.verifyClass(im, StreamOutputTypes(2));
             testCase.verifyThat(DF.ImageName, ~IsFile)
 
         end

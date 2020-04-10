@@ -126,7 +126,7 @@ classdef (Sealed) FigureDeployer < handle
         % Inputs Name-valeue Pairs:
         %
         %   -OutputType': Bytestream type for raster formats.
-        %                 Either 'uint8' or 'int8'.  
+        %                 Either 'uint8' or 'base64'.  
         %        
         % Outputs:
         % 
@@ -137,7 +137,7 @@ classdef (Sealed) FigureDeployer < handle
         
               arguments
                   obj
-                  opts.OutputType(1,:) char {mustBeMember(opts.OutputType, {'uint8', 'int8'})} = 'uint8'
+                  opts.OutputType(1,:) char {mustBeMember(opts.OutputType, {'uint8', 'base64'})} = 'uint8'
               end              
               checkFigure(obj);
               
@@ -149,7 +149,11 @@ classdef (Sealed) FigureDeployer < handle
               else
                   % Everything else, use figToImStream
                   stream = figToImStream('figHandle', obj.Figure, ...
-                      'imageFormat', obj.ImageType, 'outputType', opts.OutputType);
+                      'imageFormat', obj.ImageType, 'outputType', 'uint8');
+                  
+                  if isequal(opts.OutputType, 'base64')
+                      stream = matlab.net.base64encode(stream);
+                  end
                   
               end
               
