@@ -64,48 +64,14 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         %        
             checkFigure(obj);
         
-            % Be nice, set things back to original state.
-            origPosition = obj.Figure.Position;
-            origUnits = obj.Figure.Units;            
-            origPP = obj.Figure.PaperPosition;
-            resetFigure = @()set(obj.Figure, 'Units', origUnits, 'Position', origPosition, 'PaperPosition', origPP);
-            resetter = onCleanup(resetFigure);
+            if obj.Figure.NumberTitle == "on"
+                imdata = getFigureImage(obj);
             
-            % Driver info and resolution
-            driver = '-d' + string(obj.ImageType);
-            driver = replace(driver, 'jpg', 'jpeg'); % JPG driver includes e            
-            
-            % Set to accurate size
-            obj.Figure.Units = 'pixels';
-            obj.Figure.Position(3:4) = [obj.Width obj.Height];
+            else
+                imdata = getUIFigureImage(obj);
 
-            % Print image
-            if driver == "-dgif"
-                % Use getframe and imwrite
-                f = getframe(obj.Figure);
-                [ind, map] = rgb2ind(f.cdata, 256);
-                ind = imresize(ind, [obj.Height, obj.Width]);
-                imwrite(ind, map, obj.ImageName);
-            else
-                % Use print
-                obj.Figure.PaperPosition = [0 0 obj.Width./obj.Resolution obj.Height./obj.Resolution];
-                print(obj.Figure, obj.ImageName, char(driver), char("-r" + obj.Resolution))
             end
-            
-            if driver == "-dsvg"
-                % SVG, the output is text.                
-                fid = fopen(obj.ImageName, 'r');
-                closer = onCleanup(@()fclose(fid));
-                imdata = fread(fid, inf, 'char=>char');
-            else
-                % Raster, use imread
-                [imdata, map] = imread(obj.ImageName);
-            end
-            
-            % Handle GIF storage to return rgb data of the correct size
-            if driver == "-dgif"
-                imdata = im2uint8(ind2rgb(imdata, map));                
-            end
+
         
             % Pass back ImageName
             imname = obj.ImageName;
@@ -121,8 +87,8 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         %                 
         % Inputs Name-valeue Pairs:
         %
-        %   -OutputType': Bytestream type for raster formats.
-        %                 Either 'uint8' or 'base64'.  
+        %   -OutputType: Bytestream type for raster formats.
+        %                Either 'uint8' or 'base64'.  
         %        
         % Outputs:
         % 
@@ -143,9 +109,12 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
                   
               else
                   % Everything else, use figToImStream
-                  stream = figToImStream('figHandle', obj.Figure, ...
-                      'imageFormat', obj.ImageType, 'outputType', 'uint8');
-                  
+                  [~, imname] = getImage(obj);
+                  deleter = onCleanup(@()delete(imname));
+                  fid = fopen(imname, 'r');
+                  stream = fread(fid, inf, 'uint8=>uint8');                  
+                  fclose(fid);
+
                   if opts.OutputType == "base64"
                       stream = matlab.net.base64encode(stream);
                   end
@@ -186,7 +155,85 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
             end
             
         end
+
+        function imdata = getFigureImage(obj)
+            % Be nice, set things back to original state.
+            origPosition = obj.Figure.Position;
+            origUnits = obj.Figure.Units;            
+            origPP = obj.Figure.PaperPosition;
+            resetFigure = @()set(obj.Figure, 'Units', origUnits, 'Position', origPosition, 'PaperPosition', origPP);
+            resetter = onCleanup(resetFigure);
+            
+            % Driver info and resolution
+            driver = '-d' + string(obj.ImageType);
+            driver = replace(driver, 'jpg', 'jpeg'); % JPG driver includes e            
+            
+            % Set to accurate size
+            obj.Figure.Units = 'pixels';
+            obj.Figure.Position(3:4) = [obj.Width obj.Height];
+
+            % Print image
+            if driver == "-dgif"
+                % Use getframe and imwrite
+                f = getframe(obj.Figure);
+                [ind, map] = rgb2ind(f.cdata, 256);
+                ind = imresize(ind, [obj.Height, obj.Width]);
+                imwrite(ind, map, obj.ImageName);
+            
+            else
+                % Use print
+                obj.Figure.PaperPosition = [0 0 obj.Width./obj.Resolution obj.Height./obj.Resolution];
+                print(obj.Figure, obj.ImageName, char(driver), char("-r" + obj.Resolution))
+
+            end
+            
+            if driver == "-dsvg"
+                % SVG, the output is text.                
+                fid = fopen(obj.ImageName, 'r');
+                closer = onCleanup(@()fclose(fid));
+                imdata = fread(fid, inf, 'char=>char');
+
+            else
+                % Raster, use imread
+                [imdata, map] = imread(obj.ImageName);
+
+            end
+            
+            % Handle GIF storage to return rgb data of the correct size
+            if driver == "-dgif"
+                imdata = im2uint8(ind2rgb(imdata, map));
+
+            end
         
+        end
+
+        function imdata = getUIFigureImage(obj)
+            assert(~matches(obj.ImageType, "svg"), 'FigureDeployer:NoUIFigureSVG', ...
+                'UIFigures are not supported for SVG deployment')
+
+            origPosition = obj.Figure.Position;
+            origUnits = obj.Figure.Units;            
+            resetFigure = @()set(obj.Figure, 'Units', origUnits, 'Position', origPosition);
+            resetter = onCleanup(resetFigure);
+            
+            obj.Figure.Units = 'pixels';
+            obj.Figure.Position = [0 0 obj.Width obj.Height];
+            exportgraphics(obj.Figure, obj.ImageName, Resolution=obj.Resolution)
+            [imdata, map] = imread(obj.ImageName);
+            imdata = imresize(imdata, [obj.Height obj.Width]);
+            if isempty(map)
+                imwrite(imdata, obj.ImageName)
+                if obj.ImageType == "jpg"
+                    % Need to reread JPG because it is not lossless.
+                    imdata = imread(obj.ImageName);
+                end
+
+            else
+                imwrite(imdata, map, obj.ImageName)
+                imdata = im2uint8(ind2rgb(imdata, map));
+            end
+        end
+
     end    
     
 end
