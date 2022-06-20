@@ -30,7 +30,14 @@ classdef tFigureDeployerImageNames < matlab.unittest.TestCase
             DF = FigureDeployer(ImageName=fname);
             testCase.verifyThat(DF.ImageName, IsEqualTo(fname, 'Using', StringComparator));
             
-        end          
+        end    
+
+        function testSetImageName(testCase)
+            DF = FigureDeployer(ImageName='testImage.gif', ImageType='gif');
+            DF.ImageName = 'bobbysue.jpg';
+            testCase.verifyMatches(DF.ImageName, "bobbysue.jpg")
+
+        end
                
     end
  

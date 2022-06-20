@@ -4,10 +4,13 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
     properties
         Figure {mustBeFigureOrPlaceholder} = get(groot, 'CurrentFigure') % Figure handle
         Height(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 450 % Height in pixels of image
-        ImageName(1, 1) string = "" % Image file name
         ImageType(1, 1) string {mustBeMember(ImageType, {'png', 'jpg', 'svg', 'gif'})} = "png" % Image Type 
         Width(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 600 % Width in pixels of image
         Resolution(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 150 % Width in pixels of image
+    end
+
+    properties (Dependent)
+        ImageName(1, 1) string
     end
     
     properties (Access = protected)
@@ -71,7 +74,6 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
                 imdata = getUIFigureImage(obj);
 
             end
-
         
             % Pass back ImageName
             imname = obj.ImageName;
@@ -102,6 +104,10 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
               end              
               checkFigure(obj);
               
+              oldname = obj.ImageName;
+              namerestorer = onCleanup(@()set(obj, 'ImageName', oldname));
+              obj.ImageName = tempname+"."+obj.ImageType;
+
               if obj.ImageType == "svg"
                   % SVG stream is equivalent to the data.
                   [stream, imname] = getImage(obj);
@@ -144,6 +150,11 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         
         end
         
+        function set.ImageName(obj, newimagename)            
+            obj.ProvidedImageName = newimagename;
+
+        end
+
     end
     
     methods (Access = protected)
