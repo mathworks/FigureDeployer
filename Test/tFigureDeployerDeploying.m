@@ -2,24 +2,28 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
 % Tests the figure deployer with a figure
 
     properties
-        TempFilename
         Figure
     end
     
+    properties (MethodSetupParameter)
+        FigureGenerator = struct('figure', @figure, 'uifigure', @uifigure)
+    end
+
     properties (TestParameter)
-        RasterImageTypes = {'bmp', 'png', 'jpg', 'gif'} % Different raster image types
-        StreamOutputTypes = struct('uint8',["uint8", "uint8"], 'base64',["base64", "char"]) % Different byte stream types and expected class
+        RasterImageTypes = {'png', 'jpg', 'gif'} % Different raster image types
+        StreamOutputTypes = struct('uint8', ["uint8", "uint8"], 'base64', ["base64", "char"]) % Different byte stream types and expected class
     end
     
     methods (TestMethodSetup)
 
-        function makeFigure(testCase)
-            testCase.Figure = figure;
+        function makeFigure(testCase, FigureGenerator)
+            testCase.Figure = FigureGenerator();
             testCase.addTeardown(@()delete(testCase.Figure));
-            plot(sin(1:100))
-            xlabel('X')
-            ylabel('Hello World','FontAngle','italic')
-            patch([0 10 10 0],[0 0 1 1],'b','FaceAlpha',0.3)     
+            ax = axes(testCase.Figure);
+            plot(ax, sin(1:100))
+            xlabel(ax, 'X')
+            ylabel(ax, 'Hello World', FontAngle='italic')
+            patch(ax, [0 10 10 0], [0 0 1 1], 'b', FaceAlpha=0.3)     
             
         end
         
@@ -28,7 +32,7 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
     methods (Test)
 
         function shouldRespectWidthHeight(testCase, RasterImageTypes)
-            DF = FigureDeployer('Figure', testCase.Figure, 'ImageType', RasterImageTypes);
+            DF = FigureDeployer(Figure=testCase.Figure, ImageType=RasterImageTypes);
             DF.Width = 300;
             DF.Height = 500;
             [imdata, imname] = getImage(DF);                        
@@ -39,7 +43,15 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
        
         function shouldConstructWithDefaults(testCase)
             DF = FigureDeployer;
-            testCase.verifySameHandle(DF.Figure, testCase.Figure);            
+            if testCase.Figure.NumberTitle == false
+                % uifigure
+                testCase.verifyEmpty(DF.Figure)
+                
+            else
+                % classic figure
+                testCase.verifySameHandle(DF.Figure, testCase.Figure);
+
+            end
             testCase.verifyMatches(DF.ImageType, 'png');
             testCase.verifyEqual(DF.Width, 600);
             testCase.verifyEqual(DF.Height, 450);
@@ -50,8 +62,8 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
         function shouldConstructWithInputs(testCase)
             other_figure = figure;
             closer = onCleanup(@()close(other_figure));
-            DF = FigureDeployer('Figure', testCase.Figure, 'Width', 200, 'Height', 200, ...
-                    'ImageName', 'testImage', 'ImageType', 'svg', 'Resolution', 300);
+            DF = FigureDeployer(Figure=testCase.Figure, Width=200, Height=200, ...
+                    ImageName='testImage', ImageType='svg', Resolution=300);
             testCase.verifySameHandle(DF.Figure, testCase.Figure);
             testCase.verifyEqual(DF.Width, 200);
             testCase.verifyEqual(DF.Height, 200);
@@ -62,8 +74,8 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
         end
                     
         function shouldGenerateRasterImageFile(testCase, RasterImageTypes)
-            DF = FigureDeployer('Figure', testCase.Figure, ...
-                'ImageType', RasterImageTypes, 'ImageName', 'testImage');
+            DF = FigureDeployer(Figure=testCase.Figure, ...
+                ImageType=RasterImageTypes, ImageName='testImage');
             [imdata, imname] = getImage(DF);
             testCase.addTeardown(@()delete(imname));
             testCase.assertMatches(imname, ['testImage.' RasterImageTypes]);
@@ -81,7 +93,7 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
         end
                
         function shouldGenerateSVGFile(testCase)
-            DF = FigureDeployer('ImageType', 'svg');
+            DF = FigureDeployer(ImageType='svg');
             [imdata, imname] = getImage(DF);
             testCase.addTeardown(@()delete(imname));
             testCase.verifyClass(imdata, 'char');
@@ -97,8 +109,8 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
         end
         
         function shouldGenerateByteStreamOutput(testCase, RasterImageTypes, StreamOutputTypes)
-            DF = FigureDeployer('Figure', testCase.Figure, 'ImageType', RasterImageTypes);
-            im = getStream(DF, 'OutputType', StreamOutputTypes(1));
+            DF = FigureDeployer(Figure=testCase.Figure, ImageType=RasterImageTypes);
+            im = getStream(DF, OutputType=StreamOutputTypes(1));
             
             import matlab.unittest.constraints.IsFile
             testCase.verifyClass(im, StreamOutputTypes(2));
@@ -107,14 +119,14 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
         end
                      
         function shouldDefaultToUint8Bytes(testCase)
-            DF = FigureDeployer('Figure', testCase.Figure);
+            DF = FigureDeployer(Figure=testCase.Figure);
             im = getStream(DF);                       
             testCase.verifyClass(im, 'uint8');
             
         end        
         
         function shouldGenerateSVGStreamOutput(testCase)
-            DF = FigureDeployer('Figure', testCase.Figure, 'ImageType', 'svg');
+            DF = FigureDeployer(Figure=testCase.Figure, ImageType='svg');
             im = getStream(DF);                       
             
             import matlab.unittest.constraints.IsFile
@@ -126,4 +138,5 @@ classdef tFigureDeployerDeploying < matlab.unittest.TestCase
     end
  
 end
+
 % Copyright 2020 The MathWorks, Inc.
