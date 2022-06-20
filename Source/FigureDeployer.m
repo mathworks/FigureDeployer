@@ -1,11 +1,11 @@
-classdef (Sealed) FigureDeployer < handle
+classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
 % Deploys figure to image or byte stream
     
     properties
         Figure {mustBeFigureOrPlaceholder} = get(groot, 'CurrentFigure') % Figure handle
         Height(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 450 % Height in pixels of image
         ImageName(1, 1) string = "" % Image file name
-        ImageType(1, 1) string {mustBeMember(ImageType, {'png', 'jpg', 'bmp', 'svg', 'gif'})} = "png" % Image Type 
+        ImageType(1, 1) string {mustBeMember(ImageType, {'png', 'jpg', 'svg', 'gif'})} = "png" % Image Type 
         Width(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 600 % Width in pixels of image
         Resolution(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 150 % Width in pixels of image
     end
@@ -29,7 +29,7 @@ classdef (Sealed) FigureDeployer < handle
         %               String scalar name of file to write to.  
         %   
         %   -ImageType: Image type.  String scalar must be one the following:
-        %               {['png'], 'bmp', 'jpg', 'gif', 'svg'}
+        %               {['png'], 'jpg', 'gif', 'svg'}
         %   
         %   -Width: Width in pixels.  Scalar, default is 600.
         %   
@@ -41,10 +41,7 @@ classdef (Sealed) FigureDeployer < handle
             end            
             
             % Unpack arguments to properties
-            fn = fieldnames(opts);
-            for ii = 1:numel(fn)
-                obj.(fn{ii}) = opts.(fn{ii});
-            end
+            set(obj, opts)
             if isfield(opts, 'ImageName')
                 % Image name is provided, store it.
                 obj.ProvidedImageName = opts.ImageName;            
