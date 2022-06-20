@@ -1,6 +1,6 @@
 # Figure Deployer
 
-[![MATLAB](https://github.com/mathworks/ci-configuration-examples/actions/workflows/ci.yml/badge.svg)](https://github.com/mathworks/ci-configuration-examples/actions/workflows/ci.yml)
+[![MATLAB](https://github.com/mathworks/FigureDeployer/actions/workflows/ci.yml/badge.svg)](https://github.com/mathworks/FigureDeployer/actions/workflows/ci.yml)
 [![View Figure Deployer on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/75183-figure-deployer)
 
 This project provides a class to facilitate easy deployment of MATLAB figures to images or bytestreams.  
