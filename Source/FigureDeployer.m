@@ -3,14 +3,15 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
     
     properties
         Figure {mustBeFigureOrPlaceholder} = get(groot, 'CurrentFigure') % Figure handle
-        Height(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 450 % Height in pixels of image
+        Height(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 450 % Height in pixels of raster image
         ImageType(1, 1) string {mustBeMember(ImageType, {'png', 'jpg', 'svg', 'gif'})} = "png" % Image Type 
-        Width(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 600 % Width in pixels of image
-        Resolution(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 150 % Width in pixels of image
+        Width(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 600 % Width in pixels of raster image
+        Resolution(1, 1) {mustBeNumeric, mustBePositive, mustBeInteger} = 150 % Width in pixels of raster image
+        OutputType(1, 1) string {mustBeMember(OutputType, {'uint8', 'base64'})} = "uint8" % Stream output type for getStream
     end
 
     properties (Dependent)
-        ImageName(1, 1) string
+        ImageName(1, 1) string % Image name
     end
     
     properties (Access = protected)
@@ -22,7 +23,7 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         function obj = FigureDeployer(opts)
         % fd = FigureDeployer('Name', value, ...);
         %
-        % Name/Value Pairs:
+        % Name-Value Pairs:
         %
         %   -Figure: Figure to deploy.  Figure, default is get(groot, 'CurrentFigure').
         %
@@ -38,6 +39,11 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         %   
         %   -Resolution: Pixels/per inch.  Scalar, default is 150.
         %
+        %   -OutputType: Output type of non-SVG image stream.  Either
+        %                {['uint8'], "base64"}        
+        %                SVG is always a character vector.
+        %
+
             arguments                
                 opts.?FigureDeployer
                 opts.Figure = get(groot, 'CurrentFigure'); % Figure is separate so calculated at runtime v. class load time
@@ -65,6 +71,7 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         %
         %   -imname: Image file name.
         %        
+        
             checkFigure(obj);
         
             if obj.Figure.NumberTitle == "on"
@@ -74,36 +81,27 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
                 imdata = getUIFigureImage(obj);
 
             end
-        
-            % Pass back ImageName
             imname = obj.ImageName;
             
         end
  
-        function stream = getStream(obj, opts)
+        function stream = getStream(obj)
         % Get byte or char stream output
         %
         % Usage:
         %   
         %   stream = getStream(fd, 'Name', value)
-        %                 
-        % Inputs Name-valeue Pairs:
-        %
-        %   -OutputType: Bytestream type for raster formats.
-        %                Either 'uint8' or 'base64'.  
         %        
         % Outputs:
         % 
-        %   -Stream: Byte stream of image.
-        %            Class OutputType for raster image types.
-        %            Char for SVG.
+        %   stream: Byte stream of image.
+        %           Class OutputType for raster image types.
+        %           Char for SVG.
         %        
-              arguments
-                  obj
-                  opts.OutputType(1, 1) string {mustBeMember(opts.OutputType, {'uint8', 'base64'})} = "uint8"
-              end              
+             
               checkFigure(obj);
               
+              % Streams always use tempnames
               oldname = obj.ImageName;
               namerestorer = onCleanup(@()set(obj, 'ImageName', oldname));
               obj.ImageName = tempname+"."+obj.ImageType;
@@ -114,14 +112,14 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
                   deleter = onCleanup(@()delete(imname));
                   
               else
-                  % Everything else, use figToImStream
+                  % Everything else, generate the image, then read it
                   [~, imname] = getImage(obj);
                   deleter = onCleanup(@()delete(imname));
                   fid = fopen(imname, 'r');
                   stream = fread(fid, inf, 'uint8=>uint8');                  
                   fclose(fid);
 
-                  if opts.OutputType == "base64"
+                  if obj.OutputType == "base64"
                       stream = matlab.net.base64encode(stream);
                   end
                   
