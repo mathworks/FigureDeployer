@@ -166,7 +166,6 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
         end
 
         function imdata = getFigureImage(obj)
-            % Be nice, set things back to original state.
             origPosition = obj.Figure.Position;
             origUnits = obj.Figure.Units;            
             origPP = obj.Figure.PaperPosition;
@@ -225,6 +224,7 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
             resetFigure = @()set(obj.Figure, 'Units', origUnits, 'Position', origPosition);
             resetter = onCleanup(resetFigure);
             
+            % Get close with setting, then correct it after
             obj.Figure.Units = 'pixels';
             obj.Figure.Position = [0 0 obj.Width obj.Height];
             exportgraphics(obj.Figure, obj.ImageName, Resolution=obj.Resolution)
@@ -235,12 +235,16 @@ classdef (Sealed) FigureDeployer < handle & matlab.mixin.SetGetExactNames
                 if obj.ImageType == "jpg"
                     % Need to reread JPG because it is not lossless.
                     imdata = imread(obj.ImageName);
+
                 end
 
             else
+                % gif is special and needs map written separately
                 imwrite(imdata, map, obj.ImageName)
                 imdata = im2uint8(ind2rgb(imdata, map));
+
             end
+
         end
 
     end    
